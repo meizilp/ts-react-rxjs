@@ -18,23 +18,23 @@
 ``` http://localhost:3000/build/ ```
 
 
-## 1. 第一阶段（实现插入todo，并显示列表 commit：48a66ed6c56e8b93573a59879bdf00b51a9bea7e）
+## 1. 第一阶段（实现插入todo，并显示列表 commit：f8781c7）
 1. **src/views/index.html**  
 在body中增加 ```<div id='content'></div>``` 作为提交提交内容的元素。  
 > React中不建议直接将document.body作为目标元素。
 2. **src/index.tsx** todo相关组件   
 主界面文件(也是```webpack.config.js```中配置的入口文件)，当前所有的代码都在此文件，未做拆分。    
   - 使用接口定义Todo的数据模型  
-```js
+  ```js
   //Todo数据模型
   interface TodoItemModel {
       id: number,
       title: string,
       completed: boolean
   }
-```
+  ```
   - 显示一条todo的组件  
-```js
+  ```js
   //用来显示一条todo的组件。拥有一个data属性，可以指定要显示的todo对象。
     class TodoItem extends React.Component<{ data: TodoItemModel }, {}> {
         render() {
@@ -50,9 +50,9 @@
             );
         }
     }
-```
+  ```
   - 显示所有todo的列表组件
-```js
+  ```js
     //显示todo列表的组件。拥有一个data属性，数据是要显示的所有todo对象数组。
     class TodoList extends React.Component<{ data: TodoItemModel[] }, {}> {
         render() {
@@ -66,17 +66,17 @@
             );
         }
     } 
-```
+  ```
 3. **src/index.tsx** App组件  
   - App组件  
-```js
+  ```js
         //APP组件，页面的入口组件。要求一个包含data字段的状态对象，data字段的数据类型是todo对象数组。
         class App extends React.Component<{}, { data: TodoItemModel[] }> {
             ...
         }
-```
+  ```
   - App组件的构造函数    
-```js
+  ```js
         /*
         *构造函数。给状态对象一个初始值。state的值必须是一个对象，不能是number之类。   
         *如果类定义原型那儿约定data是个number，这儿赋一个number上去，编译没问题，但运行时就会报错。    
@@ -85,9 +85,9 @@
             super()
             this.state = { data: [] };
         }
-```
+  ```  
   - App组件的Render函数（决定了渲染到页面上内容）
-```js
+  ```js
     render() {
         return (
             <div>
@@ -102,9 +102,9 @@
             </div>
         );
     }
-```
-    - App组件的componentDidMount函数，组件加载后建立业务逻辑  
-```js  
+  ```  
+  - App组件的componentDidMount函数，组件加载后建立业务逻辑  
+  ```js  
     componentDidMount() {
         //输入框。
         let input: HTMLInputElement = this.refs['titleInput'] as HTMLInputElement;
@@ -131,13 +131,13 @@
         //组件加载后设置输入焦点到输入区
         input.focus()
     }
-```
-4. **src/index.tsx** 在页面渲染App组件  
-```js
+  ```
+4. **src/index.tsx** 在页面渲染App组件    
+  ```js
     //将App组件渲染到页面的content元素中
     ReactDOM.render(<App />, document.getElementById('content')) 
-```
-5. 第一阶段遇到过的问题
+  ```  
+5. 第一阶段遇到过的问题  
   - Promise等类型VsCode默认的lib.d.ts不支持，所以要修改tsconfig.json，指明采用lib.es6.d.ts。  
   - React组件的refs要通过key值访问才好避免vscode的错误提示。（虽然不影响最终使用）
   - TypeScript采用 <类型>变量 这种写法进行强制类型转换，但tsx中<被占用，所以采用as操作符。
