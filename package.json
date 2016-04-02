@@ -1,0 +1,36 @@
+{
+  "name": "08ts_react_webpack_vscode",
+  "version": "1.0.0",
+  "description": "React Demo with ts and vscode",
+  "main": "src/index.tsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "pengyg",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^0.14.7",
+    "react-dom": "^0.14.7",
+    "rxjs": "^5.0.0-beta.4"
+  },
+  "devDependencies": {
+    "babel-core": "^6.7.4",
+    "babel-loader": "^6.2.4",
+    "babel-preset-react": "^6.5.0",
+    "clean-webpack-plugin": "^0.1.8",
+    "copy-webpack-plugin": "^1.1.1",
+    "css-loader": "^0.23.1",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "file-loader": "^0.8.5",
+    "html-minify-loader": "^1.1.0",
+    "html-webpack-plugin": "^2.14.0",
+    "json-loader": "^0.5.4",
+    "path": "^0.12.7",
+    "raw-loader": "^0.5.1",
+    "style-loader": "^0.13.1",
+    "ts-loader": "^0.8.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.12.14",
+    "yargs": "^4.3.2"
+  }
+}

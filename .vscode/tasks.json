@@ -1,0 +1,32 @@
+{
+    "version": "0.1.0",
+    "command": "webpack",
+    "isShellCommand": true,
+    "showOutput": "always",
+    "echoCommand": true,
+    "suppressTaskName": true,
+    "tasks": [
+        {
+            "taskName": "Build development version",
+            "args": [
+                "--display-error-details"
+            ],
+            "problemMatcher": "$tsc",
+            "isBuildCommand": true
+        },
+        {
+            "taskName": "Build development version with clean target dirctory",
+            "args": [
+                "--clean",
+                "--display-error-details"
+            ]
+        },
+        {
+            "taskName": "Build production version",
+            "args": [
+                "-p",
+                "--display-error-details"
+            ]
+        }
+    ]
+}
