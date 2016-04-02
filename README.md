@@ -5,6 +5,8 @@
 
 ## 使用说明
 
+代码经历了很多阶段，每个阶段都有tags，可以根据需要commit。  
+
 1. 安装依赖的包、头文件  
 ```npm install```  
 ```tsd install```  
@@ -16,7 +18,7 @@
 ```http://localhost:3000/build/```
 
 
-## 1. 第一阶段（实现插入todo，并显示列表）
+## 1. 第一阶段（实现插入todo，并显示列表 commit：48a66ed6c56e8b93573a59879bdf00b51a9bea7e）
 1. **src/views/index.html**  
 在body中增加 ```<div id='content'></div>``` 作为提交提交内容的元素。  
 > React中不建议直接将document.body作为目标元素。
