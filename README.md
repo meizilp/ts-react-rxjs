@@ -12,10 +12,10 @@
 ```tsd install```  
 2. 编译项目  
 ```webpack --clean```
-3. 运行本地server  
-```./server.bat```
+3. 运行本地server   
+``` ./server.bat ```
 4. 在浏览器访问  
-```http://localhost:3000/build/```
+``` http://localhost:3000/build/ ```
 
 
 ## 1. 第一阶段（实现插入todo，并显示列表 commit：48a66ed6c56e8b93573a59879bdf00b51a9bea7e）
