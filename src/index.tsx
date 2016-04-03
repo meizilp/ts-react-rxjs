@@ -1,9 +1,7 @@
 /// <reference path="../typings/tsd.d.ts" />
-
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import * as Rx from 'rxjs'
-
 
 //Todo数据模型
 interface TodoItemModel {
@@ -12,47 +10,40 @@ interface TodoItemModel {
     completed?: boolean
 }
 
+//初始化store
+const ACTION_INIT_STORE = 'init_store'
 //新增Todo的Action名称
 const ACTION_CREATE_TODO = 'create'
 //删除Todo的Action名称
 const ACTION_DELETE_TODO = 'delete'
-
 //操作Todo的Action模型
 interface TodoAction {
     type: string,
-    todo?: TodoItemModel
+    todo?: TodoItemModel | TodoItemModel[]
 }
 
-//存储所有Todo的Store
-class TodoStore implements Rx.Observer<TodoAction> {
-    public todos: TodoItemModel[]    //所有todos
-    public component: React.Component<any, any>   //要更新状态的组件
+class TodoStore {
+    public subject: Rx.BehaviorSubject<TodoAction>  //接收action的Observer，所有的action都会触发其发射事件
+    public todosObservable: Rx.Observable<TodoItemModel[]>  //基于subject通过scan函数得到的所有action效果叠加结果
     constructor() {
-        this.todos = []
-    }
-    //有事件通知时的回调函数
-    next(value: TodoAction) {
-        switch (value.type) {
-            case ACTION_CREATE_TODO:
-                //新建todo，加入数组，更新App组件。
-                this.todos.push(value.todo)
-                this.component.setState({ data: this.todos })
-                break;
-            case ACTION_DELETE_TODO:
-                //把要删除的todo过滤掉，剩下的作为结果，更新App组件。
-                this.todos = this.todos.filter((todo) => todo !== value.todo)
-                this.component.setState({ data: this.todos })
-                break;
-        }
-    }
-    error(e) {
-
-    }
-    complete() {
-
+        this.subject = new Rx.BehaviorSubject({ type: ACTION_INIT_STORE, todo: [{ id: Date.now(), title: 'subject init data' }] })  //使用一个固定的数据来作为初始化元素
+        this.todosObservable = this.subject
+            .delay(500)    //模拟action异步操作需要0.5秒。在网页上可以看到初始后数据会变化，新增、删除记录也会有1秒延迟
+            .scan<TodoItemModel[]>(
+            (todos, action) => {
+                switch (action.type) {
+                    case ACTION_INIT_STORE:
+                        return action.todo as TodoItemModel[]   //初始化数据记录下来
+                    case ACTION_CREATE_TODO:
+                        return [...todos, action.todo]   //新建的todo加入新的结果数组
+                    case ACTION_DELETE_TODO:
+                        return todos.filter((todo) => todo != action.todo)  //被删除的元素被过滤掉，返回新数组
+                    default:
+                        return todos;
+                }
+            }, [])  //scan操作符，把action的影响转换为一个数组。这儿使用了一个空数组进行初始化，如果不初始化，scan所形成observable发射的第一个元素将是subject的初始action，并不是一个数组。
     }
 }
-
 
 //用来显示一条todo的组件。拥有一个data属性，数据是要显示的todo对象，拥有一个store属性，用来通知store响应动作
 class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }, {}> {
@@ -69,9 +60,8 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
                     todo: this.props.data
                 }
             });
-
         //当删除todo有发生时通知store更新
-        deleteTodo.subscribe(this.props.store)
+        deleteTodo.subscribe(this.props.store.subject)
     }
 
     render() {
@@ -110,12 +100,13 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
     */
     constructor() {
         super()
-        this.state = { data: [] };
+        this.state = { data: [{ id: Date.now(), title: 'app init data' }] };
     }
 
     componentDidMount() {
-        //输入框。
+        //输入框。组件加载后默认设置输入区获得焦点。
         let input: HTMLInputElement = this.refs['titleInput'] as HTMLInputElement;
+        input.focus()
         //从event生成的observable，每次按键都会触发。
         let enterEvent = Rx.Observable.fromEvent(input, 'keypress')
         //按键事件触发后的系列处理
@@ -134,14 +125,20 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
             });  //根据输入值生成一个新的todo对象，映射为新的事件发射；
 
         //当新建todo有发生时通知store更新
-        newTodo.subscribe(this.props.store)
-        //当新建todo有发生时清空输入区。必须在store的订阅之后。否则input.value修改会触发事件。        
-        newTodo.forEach((c) => {
-            input.value = ''    //清空输入区内容，等待新的输入
-        })
+        newTodo.subscribe(this.props.store.subject)
 
-        //组件加载后设置输入焦点到输入区
-        input.focus()
+        //每当收到创建新条目的action时清空输入区（待实现异步保存成功后再清空输入区）
+        this.props.store.subject
+            .filter((a) => a.type === ACTION_CREATE_TODO)
+            .forEach((todos) => {
+                input.value = ''
+            })        
+
+        //每当todos的结果发生变化时更新整个App的状态        
+        this.props.store.todosObservable
+            .forEach((todos) => {
+                this.setState({ data: todos })
+            })        
     }
 
     render() {
@@ -161,6 +158,5 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
 }
 
 //将App组件渲染到页面的content元素中
-let store = new TodoStore()
-store.component = ReactDOM.render(<App store={store}/>, document.getElementById('content')) as React.Component<any, any>
+ReactDOM.render(<App store={new TodoStore() }/>, document.getElementById('content'))
 
