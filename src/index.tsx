@@ -16,6 +16,8 @@ const ACTION_INIT_STORE = 'init_store'
 const ACTION_CREATE_TODO = 'create'
 //删除Todo的Action名称
 const ACTION_DELETE_TODO = 'delete'
+//改变Todo的完成状态
+const ACTION_TOGGLE_TODO = 'toggle'
 //操作Todo的Action模型
 interface TodoAction {
     type: string,
@@ -46,6 +48,11 @@ class TodoStore {
                         return [...todos, action.todo]   //新建的todo加入新的结果数组
                     case ACTION_DELETE_TODO:
                         return todos.filter((todo) => todo != action.todo)  //被删除的元素被过滤掉，返回新数组
+                    case ACTION_TOGGLE_TODO:
+                        //如果不是要修改的对象原样返回，如果是那么新建一个对象复制原对象，并修改完成状态，最终所有对象组成一个新的数组返回
+                        return todos.map((t) => {
+                            return t !== action.todo ? t : Object.assign({}, t, { completed: !t.completed })    
+                        })
                     default:
                         return todos;
                 }
@@ -61,8 +68,7 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
         let clickEvent = Rx.Observable.fromEvent(btn_delete, 'click')
         //click事件触发后转换为删除请求
         let deleteTodo = clickEvent
-            .map<TodoAction>(
-            () => {
+            .map<TodoAction>(() => {
                 return {
                     type: ACTION_DELETE_TODO,
                     todo: this.props.data
@@ -70,13 +76,22 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
             });
         //当删除todo有发生时通知store更新
         deleteTodo.subscribe(this.props.store.subject)
+
+        //checkbox被点击时请求修改todo的状态        
+        let cb_completed: HTMLInputElement = this.refs['chkbox_completed'] as HTMLInputElement
+        Rx.Observable.fromEvent(cb_completed, 'click').map<TodoAction>(() => {
+            return {
+                type: ACTION_TOGGLE_TODO,
+                todo: this.props.data
+            }
+        }).subscribe(this.props.store.subject)
     }
 
     render() {
         return (
             <div>
                 {/*复选框控件。显示及修改当前todo的完成状态*/}
-                <input type='checkbox' checked={this.props.data.completed} />
+                <input type='checkbox' checked={this.props.data.completed} ref='chkbox_completed'/>
                 {/*显示标题。*/}
                 <label>{this.props.data.title}</label>
                 {/*删除按钮*/}
@@ -128,7 +143,7 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
             v => {
                 return {
                     type: ACTION_CREATE_TODO,
-                    todo: { id: Date.now(), title: v }
+                    todo: { id: Date.now(), title: v, completed: false }
                 }
             });  //根据输入值生成一个新的todo对象，映射为新的事件发射；
 

@@ -317,4 +317,13 @@ function loadFromLocal(): TodoItemModel[] {
 }
 ```  
 
+## 5.第五阶段（支持修改todo的完成状态）
+思路：当check被点击时，发送修改状态的请求，收到请求后原数组map为一个新数组，新数组中要修改的todo用一个新对象复制原对象替代。  
+```js
+case ACTION_TOGGLE_TODO:
+    //如果不是要修改的对象原样返回，如果是那么新建一个对象复制原对象，并修改完成状态，最终所有对象组成一个新的数组返回
+    return todos.map((t) => {
+        return t !== action.todo ? t : Object.assign({}, t, { completed: !t.completed })    
+    })
+```
   
