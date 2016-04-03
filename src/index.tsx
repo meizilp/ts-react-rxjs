@@ -25,28 +25,22 @@ interface TodoAction {
 
 //存储所有Todo的Store
 class TodoStore implements Rx.Observer<TodoAction> {
-    public todos: TodoItemModel[]
-    public component: React.Component<any, any>
+    public todos: TodoItemModel[]    //所有todos
+    public component: React.Component<any, any>   //要更新状态的组件
     constructor() {
         this.todos = []
     }
+    //有事件通知时的回调函数
     next(value: TodoAction) {
         switch (value.type) {
             case ACTION_CREATE_TODO:
-                value.todo.id = Date.now()
+                //新建todo，加入数组，更新App组件。
                 this.todos.push(value.todo)
                 this.component.setState({ data: this.todos })
                 break;
             case ACTION_DELETE_TODO:
-                let newTodos: TodoItemModel[] = [];
-                this.todos.forEach(
-                    x => {
-                        if (x.id != value.todo.id) {
-                            newTodos.push(x)
-                        }
-                    }
-                )
-                this.todos = newTodos;
+                //把要删除的todo过滤掉，剩下的作为结果，更新App组件。
+                this.todos = this.todos.filter((todo) => todo !== value.todo)
                 this.component.setState({ data: this.todos })
                 break;
         }
@@ -66,15 +60,15 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
         let btn_delete: HTMLButtonElement = this.refs['btn_delete'] as HTMLButtonElement;
         //从event生成的observable，每次点击按钮都会触发。
         let clickEvent = Rx.Observable.fromEvent(btn_delete, 'click')
-        //按键事件触发后的系列处理
+        //click事件触发后转换为删除请求
         let deleteTodo = clickEvent
             .map<TodoAction>(
             () => {
                 return {
                     type: ACTION_DELETE_TODO,
-                    todo: { id: this.props.data.id }
+                    todo: this.props.data
                 }
-            });  //请求删除指定id的todo
+            });
 
         //当删除todo有发生时通知store更新
         deleteTodo.subscribe(this.props.store)
@@ -97,7 +91,7 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
 //显示todo列表的组件。拥有一个data属性，数据是要显示的所有todo对象数组，拥有一个store对象，是要为了传递给显示item的组件
 class TodoList extends React.Component<{ store: TodoStore, data: TodoItemModel[] }, {}> {
     render() {
-        //把todo对象数组映射为todo显示组件数组
+        //把todo对象数组映射为todo显示组件数组;store传递给item
         let list = this.props.data.map(x => <TodoItem data={x} store={this.props.store}/>)
         //返回组件形成的列表
         return (
@@ -135,7 +129,7 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
             v => {
                 return {
                     type: ACTION_CREATE_TODO,
-                    todo: { title: v }
+                    todo: { id: Date.now(), title: v }
                 }
             });  //根据输入值生成一个新的todo对象，映射为新的事件发射；
 
