@@ -151,8 +151,8 @@
       1) scan操作符会回调函数，这个函数要有两个参数值。
       2) 这两个参数值一个是上次调用时的值，一个是这次的值。
       3) 常见例子往往是把这次的值和上次调用的值累加起来，很容易误会scan就是累加。
-      4) 值可以是函数，也就是新值或者上次的值都可以是映射后的函数，这样方便针对同一个observable，进行不同的操作。            
-----------  
+      4) 值可以是函数，也就是新值或者上次的值都可以是映射后的函数，这样方便针对同一个observable，进行不同的操作。  
+                      
 ## 2. 第二阶段（实现插入、删除todo commit：7789651）
 在第一阶段中所有的todos实际上是保存在基于input的回车创建的observable的scan操作符返回的observable中（好拗口）。  
 当要删除一个todo时，别的组件来操作这个组件的内部数据这是不好的，所以创建一个全局的Observer，其中用变量保存了当前的所有todos，
@@ -282,4 +282,28 @@ store.component = ReactDOM.render(<App store={store}/>, document.getElementById(
   - 输入框不管新增是否成功都会清空，这也是不恰当的。  
   - 在Render <App>组件时，本来计划store创建时把this传递进去作为component的句柄，实际上这个时候this并不是App组件，App组件此时还没创建呢。
   - React无状态组件：不能有声明周期函数；通过参数解构传递数据不能指定数据类型；不能通过this.props访问参数，因为参数就不是属性的一部分。
+  
+## 3.第三阶段（自定义Store，不再作为Observer，其包含有一个subject来作为Observer Commit:1acfa94）
+1. 调整采用subject的原因是：  
+  - 解决input.value=''必须在其他订阅执行后的限制。    
+  - 解决事件传递到自定义Observer就终止，无法继续链式处理的问题。    
+  - subject有多种类型，behavior支持一个初始值，这儿使用最合适。具体差异见[Rx subject文档](https://mcxiaoke.gitbooks.io/rxdocs/content/Subject.html)
+
+2. 思路：    
+  1)所有的操作都被映射为一个Action发送给Store的subject；  
+  2)subject的scan操作符处理每一个Action并返回一个Observable；    
+  3)第2步返回的Observable在App组件中通过foreach操作符处理，每次都更新App组件的状态，进而使页面刷新。  
+
+3. 第三阶段遇到的问题：  
+  1)App组件加载时会Render两次。这是正常的，第一次是使用的默认staterender，然后当数据初始化完成后，收到action，更新了当前结果，又刷新了状态，所以会再刷新一次。  
+  2)reduce操作符和scan操作符最大的区别在于reduce要等所有事件发送完毕才触发。  
+  3)React的组件构造时this.props还不可用。  
+  4)清空input应该在保存成功后再清空（还未实现）（或者异步保存会自动重试，未保存的会一直尝试）    
+  5)scan操作符使用的两个参数其类型不一定是一样的，甚至是函数都可以。  
+  6)scan操作符如果保存的累加值和新值类型不一样，那么要给一个和累加值类型一样的初始值。比如这儿累加值是一个数组，而新值是个action，如果不给初始值，那么第一个值会是action对象，而不是数组，导致列表组件收到通知render时找不到map函数。
+  7)scan操作符不给初始值时，第一次不会调用所定义的合并函数，而是直接传递第一个值出去。（可以参看scan的代码，里面进行了判断，针对当前是否有值做了不同处理）。所以没有初始值时在scan操作符内的函数加断点发现第一次不会中断，但其实scan函数确实是有执行的。  
+  8)在这个App中，不能通过skip(1)来回避scan操作符传递过来的第一个元素，因为这个元素带有初始化数据，是有用的。  
+    
+  
+
   
