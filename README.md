@@ -153,4 +153,133 @@
       3) 常见例子往往是把这次的值和上次调用的值累加起来，很容易误会scan就是累加。
       4) 值可以是函数，也就是新值或者上次的值都可以是映射后的函数，这样方便针对同一个observable，进行不同的操作。            
 ----------
+## 2. 第二阶段（实现插入、删除todo commit：）
+在第一阶段中所有的todos实际上是保存在基于input的回车创建的observable的scan操作符返回的observable中（好拗口）。  
+当要删除一个todo时，别的组件来操作这个组件的内部数据这是不好的，所以创建一个全局的Observer，其中用变量保存了当前的所有todos，
+所有的事件都通知这个Observer，这个Observer再根据通知类型类决定对于保存的数据集进行如何操作，并且更新组件的状态，进而更新页面内容。  
+1. TodoAction,操作todo的请求结构
+```js
+//新增Todo的Action名称
+const ACTION_CREATE_TODO = 'create'
+//删除Todo的Action名称
+const ACTION_DELETE_TODO = 'delete'
+//操作Todo的Action模型
+interface TodoAction {
+    type: string,
+    todo?: TodoItemModel
+}
+```
+2. TodoStore，保存了所有Todos的Observer
+```js
+//存储所有Todo的Store
+class TodoStore implements Rx.Observer<TodoAction> {
+    public todos: TodoItemModel[]    //所有todos
+    public component: React.Component<any, any>   //要更新状态的组件
+    constructor() {
+        this.todos = []
+    }
+    //有事件通知时的回调函数
+    next(value: TodoAction) {
+        switch (value.type) {
+            case ACTION_CREATE_TODO:
+                //新建todo，加入数组，更新App组件。
+                this.todos.push(value.todo)
+                this.component.setState({ data: this.todos })
+                break;
+            case ACTION_DELETE_TODO:
+                //把要删除的todo过滤掉，剩下的作为结果，更新App组件。
+                this.todos = this.todos.filter((todo) => todo !== value.todo )
+                this.component.setState({ data: this.todos })
+                break;
+        }
+    }
+    error(e) {
 
+    }
+    complete() {
+
+    }
+}
+```
+3. 显示一条todo的组件，增加了delete的处理。
+```js
+//用来显示一条todo的组件。拥有一个data属性，数据是要显示的todo对象，拥有一个store属性，用来通知store响应动作
+class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }, {}> {
+    componentDidMount() {
+        let btn_delete: HTMLButtonElement = this.refs['btn_delete'] as HTMLButtonElement;
+        //从event生成的observable，每次点击按钮都会触发。
+        let clickEvent = Rx.Observable.fromEvent(btn_delete, 'click')
+        //click事件触发后转换为删除请求
+        let deleteTodo = clickEvent
+            .map<TodoAction>(
+            () => {
+                return {
+                    type: ACTION_DELETE_TODO,
+                    todo: this.props.data
+                }
+            }); 
+
+        //当删除todo有发生时通知store更新
+        deleteTodo.subscribe(this.props.store)
+    }
+
+    render() {
+        return (
+            <div>
+                {/*复选框控件。显示及修改当前todo的完成状态*/}
+                <input type='checkbox' checked={this.props.data.completed} />
+                {/*显示标题。*/}
+                <label>{this.props.data.title}</label>
+                {/*删除按钮*/}
+                <button ref='btn_delete'>Delete</button>
+            </div>
+        );
+    }
+}
+```
+4. 显示Todo列表的组件，增加了一个store属性，以传递给item显示组件使用。没有采用无状态组件的写法，因为那样写利用不上类型声明，还不如这个清晰。
+5. App组件，调整输入框回车事件转换为一个新增Action。  
+```js
+componentDidMount() {
+    //输入框。
+    let input: HTMLInputElement = this.refs['titleInput'] as HTMLInputElement;
+    //从event生成的observable，每次按键都会触发。
+    let enterEvent = Rx.Observable.fromEvent(input, 'keypress')
+    //按键事件触发后的系列处理
+    let newTodo = enterEvent
+        .filter((e: KeyboardEvent) => {
+            return e.keyCode === 13
+        }) //过滤只允许回车按键事件通过；
+        .map(() => input.value) //获取当前输入区的值，映射为新的事件发射；
+        .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
+        .map<TodoAction>(
+        v => {
+            return {
+                type: ACTION_CREATE_TODO,
+                todo: { id: Date.now(), title: v }
+            }
+        });  //根据输入值生成一个新的todo对象，映射为新的事件发射；
+
+    //当新建todo有发生时通知store更新
+    newTodo.subscribe(this.props.store)
+    //当新建todo有发生时清空输入区。必须在store的订阅之后。否则input.value修改会触发事件。        
+    newTodo.forEach((c) => {
+        input.value = ''    //清空输入区内容，等待新的输入
+    })
+
+    //组件加载后设置输入焦点到输入区
+    input.focus()
+}
+```
+6. 渲染App组件，并把App组件设置为store的属性。
+```js
+//将App组件渲染到页面的content元素中
+let store = new TodoStore()
+store.component = ReactDOM.render(<App store={store}/>, document.getElementById('content')) as React.Component<any, any>
+```
+7. 第二阶段遇到的问题：
+  - 输入框赋值也会触发事件，所以如果订阅事件中设置input.value，那么其他的订阅会受到影响，导致工作不正常。这导致对于订阅顺序有了约束，这是不恰当的。    
+  - 输入框不管新增是否成功都会清空，这也是不恰当的。  
+  - 在Render <App>组件时，本来计划store创建时把this传递进去作为component的句柄，实际上这个时候this并不是App组件，App组件此时还没创建呢。
+  - React无状态组件：不能有声明周期函数；通过参数解构传递数据不能指定数据类型；不能通过this.props访问参数，因为参数就不是属性的一部分。
+  
