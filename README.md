@@ -295,15 +295,26 @@ store.component = ReactDOM.render(<App store={store}/>, document.getElementById(
   3)第2步返回的Observable在App组件中通过foreach操作符处理，每次都更新App组件的状态，进而使页面刷新。  
 
 3. 第三阶段遇到的问题：  
-  1)App组件加载时会Render两次。这是正常的，第一次是使用的默认staterender，然后当数据初始化完成后，收到action，更新了当前结果，又刷新了状态，所以会再刷新一次。  
+  1)App组件加载时会Render两次。这是正常的，第一次是使用的默认state进行render，然后当数据初始化完成后，收到action，更新了当前结果，又刷新了状态，所以会再刷新一次。  
   2)reduce操作符和scan操作符最大的区别在于reduce要等所有事件发送完毕才触发。  
   3)React的组件构造时this.props还不可用。  
   4)清空input应该在保存成功后再清空（还未实现）（或者异步保存会自动重试，未保存的会一直尝试）    
   5)scan操作符使用的两个参数其类型不一定是一样的，甚至是函数都可以。  
-  6)scan操作符如果保存的累加值和新值类型不一样，那么要给一个和累加值类型一样的初始值。比如这儿累加值是一个数组，而新值是个action，如果不给初始值，那么第一个值会是action对象，而不是数组，导致列表组件收到通知render时找不到map函数。
+  6)scan操作符如果保存的累加值和新值类型不一样，那么要给一个和累加值类型一样的初始值。比如这儿累加值是一个数组，而新值是个action，如果不给初始值，那么第一个值会是action对象，而不是数组，导致列表组件收到通知render时找不到map函数。  
   7)scan操作符不给初始值时，第一次不会调用所定义的合并函数，而是直接传递第一个值出去。（可以参看scan的代码，里面进行了判断，针对当前是否有值做了不同处理）。所以没有初始值时在scan操作符内的函数加断点发现第一次不会中断，但其实scan函数确实是有执行的。  
   8)在这个App中，不能通过skip(1)来回避scan操作符传递过来的第一个元素，因为这个元素带有初始化数据，是有用的。  
     
-  
+## 4.第四阶段（增加本地存储 Commit:9d3482a)
+思路：当store的subject初始化时，从本地存储读取数据；当结果集合发生变化时保存到本地再更新组件状态。  
+```js
+const LOCAL_STORAGE_KEY = 'myTodo'
+function saveToLocal(todos: TodoItemModel[]) {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(todos));
+}
+function loadFromLocal(): TodoItemModel[] {
+    let localStore = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return (localStore && JSON.parse(localStore)) || [];
+}
+```  
 
   

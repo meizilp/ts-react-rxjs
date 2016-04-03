@@ -22,13 +22,21 @@ interface TodoAction {
     todo?: TodoItemModel | TodoItemModel[]
 }
 
+const LOCAL_STORAGE_KEY = 'myTodo'
+function saveToLocal(todos: TodoItemModel[]) {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(todos));
+}
+function loadFromLocal(): TodoItemModel[] {
+    let localStore = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return (localStore && JSON.parse(localStore)) || [];
+}
+
 class TodoStore {
     public subject: Rx.BehaviorSubject<TodoAction>  //接收action的Observer，所有的action都会触发其发射事件
     public todosObservable: Rx.Observable<TodoItemModel[]>  //基于subject通过scan函数得到的所有action效果叠加结果
     constructor() {
-        this.subject = new Rx.BehaviorSubject({ type: ACTION_INIT_STORE, todo: [{ id: Date.now(), title: 'subject init data' }] })  //使用一个固定的数据来作为初始化元素
+        this.subject = new Rx.BehaviorSubject({ type: ACTION_INIT_STORE, todo: loadFromLocal() })  //从本地存储加载数据
         this.todosObservable = this.subject
-            .delay(500)    //模拟action异步操作需要0.5秒。在网页上可以看到初始后数据会变化，新增、删除记录也会有1秒延迟
             .scan<TodoItemModel[]>(
             (todos, action) => {
                 switch (action.type) {
@@ -132,13 +140,14 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
             .filter((a) => a.type === ACTION_CREATE_TODO)
             .forEach((todos) => {
                 input.value = ''
-            })        
+            })
 
-        //每当todos的结果发生变化时更新整个App的状态        
+        //每当todos的结果发生变化时保存到本地存储，并更新整个App的状态        
         this.props.store.todosObservable
             .forEach((todos) => {
+                saveToLocal(todos)
                 this.setState({ data: todos })
-            })        
+            })
     }
 
     render() {
