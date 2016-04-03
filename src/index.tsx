@@ -1,4 +1,6 @@
+/// <reference path="../node_modules/typescript/lib/lib.es6.d.ts" /> 
 /// <reference path="../typings/tsd.d.ts" />
+
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import * as Rx from 'rxjs'
@@ -51,7 +53,7 @@ class TodoStore {
                     case ACTION_TOGGLE_TODO:
                         //如果不是要修改的对象原样返回，如果是那么新建一个对象复制原对象，并修改完成状态，最终所有对象组成一个新的数组返回
                         return todos.map((t) => {
-                            return t !== action.todo ? t : Object.assign({}, t, { completed: !t.completed })    
+                            return t !== action.todo ? t : Object.assign({}, t, { completed: !t.completed })  
                         })
                     default:
                         return todos;
