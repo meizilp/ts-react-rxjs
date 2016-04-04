@@ -5,6 +5,8 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import * as Rx from 'rxjs'
 
+import {EventHandlerSubject} from './ts/utils/EventHandlerSubject.ts'
+
 //Todo数据模型
 interface TodoItemModel {
     id?: number,
@@ -20,10 +22,14 @@ const ACTION_CREATE_TODO = 'create'
 const ACTION_DELETE_TODO = 'delete'
 //改变Todo的完成状态
 const ACTION_TOGGLE_TODO = 'toggle'
+//更新TODO的title
+const ACTION_UPDATE_TODO = 'update'
 //操作Todo的Action模型
 interface TodoAction {
     type: string,
-    todo?: TodoItemModel | TodoItemModel[]
+    todo?: TodoItemModel
+    todos?: TodoItemModel[]
+    newTitle?: string
 }
 
 const LOCAL_STORAGE_KEY = 'myTodo'
@@ -39,13 +45,13 @@ class TodoStore {
     public subject: Rx.BehaviorSubject<TodoAction>  //接收action的Observer，所有的action都会触发其发射事件
     public todosObservable: Rx.Observable<TodoItemModel[]>  //基于subject通过scan函数得到的所有action效果叠加结果
     constructor() {
-        this.subject = new Rx.BehaviorSubject({ type: ACTION_INIT_STORE, todo: loadFromLocal() })  //从本地存储加载数据
+        this.subject = new Rx.BehaviorSubject({ type: ACTION_INIT_STORE, todos: loadFromLocal() })  //从本地存储加载数据
         this.todosObservable = this.subject
             .scan<TodoItemModel[]>(
             (todos, action) => {
                 switch (action.type) {
                     case ACTION_INIT_STORE:
-                        return action.todo as TodoItemModel[]   //初始化数据记录下来
+                        return action.todos  //初始化数据记录下来
                     case ACTION_CREATE_TODO:
                         return [...todos, action.todo]   //新建的todo加入新的结果数组
                     case ACTION_DELETE_TODO:
@@ -53,7 +59,12 @@ class TodoStore {
                     case ACTION_TOGGLE_TODO:
                         //如果不是要修改的对象原样返回，如果是那么新建一个对象复制原对象，并修改完成状态，最终所有对象组成一个新的数组返回
                         return todos.map((t) => {
-                            return t !== action.todo ? t : Object.assign({}, t, { completed: !t.completed })  
+                            return t !== action.todo ? t : Object.assign({}, t, { completed: !t.completed })
+                        })
+                    case ACTION_UPDATE_TODO:
+                        //如果不是要修改的对象原样返回，如果是那么新建一个对象复制原对象，并修改标题，最终所有对象组成一个新的数组返回
+                        return todos.map((t) => {
+                            return t !== action.todo ? t : Object.assign({}, t, { title: action.newTitle })
                         })
                     default:
                         return todos;
@@ -63,43 +74,98 @@ class TodoStore {
 }
 
 //用来显示一条todo的组件。拥有一个data属性，数据是要显示的todo对象，拥有一个store属性，用来通知store响应动作
-class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }, {}> {
+class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }, { isEditing: boolean }> {
+    private lblDbClickEventSubject: EventHandlerSubject<any>;
+    private inputKeyPressEventSubject: EventHandlerSubject<any>;
+    private btnDeleteClickEventSubject: EventHandlerSubject<any>;
+    private cbChangeEventSubject: EventHandlerSubject<any>;
+    constructor() {
+        super()
+        this.state = { isEditing: false }
+        this.lblDbClickEventSubject = new EventHandlerSubject<any>()
+        this.inputKeyPressEventSubject = new EventHandlerSubject<any>()
+        this.btnDeleteClickEventSubject = new EventHandlerSubject<any>()
+        this.cbChangeEventSubject = new EventHandlerSubject<any>()
+    }
+
+    componentDidUpdate() {
+        if (this.state.isEditing) {
+            let input = this.refs['title_input'] as HTMLInputElement
+            input.value = this.props.data.title
+            input.focus()
+        }
+    }
+
     componentDidMount() {
-        let btn_delete: HTMLButtonElement = this.refs['btn_delete'] as HTMLButtonElement;
-        //从event生成的observable，每次点击按钮都会触发。
-        let clickEvent = Rx.Observable.fromEvent(btn_delete, 'click')
-        //click事件触发后转换为删除请求
-        let deleteTodo = clickEvent
+        this.btnDeleteClickEventSubject
             .map<TodoAction>(() => {
                 return {
                     type: ACTION_DELETE_TODO,
                     todo: this.props.data
                 }
-            });
-        //当删除todo有发生时通知store更新
-        deleteTodo.subscribe(this.props.store.subject)
+            }).subscribe(this.props.store.subject)
 
-        //checkbox被点击时请求修改todo的状态        
-        let cb_completed: HTMLInputElement = this.refs['chkbox_completed'] as HTMLInputElement
-        Rx.Observable.fromEvent(cb_completed, 'click').map<TodoAction>(() => {
-            return {
-                type: ACTION_TOGGLE_TODO,
-                todo: this.props.data
+        this.cbChangeEventSubject
+            .map<TodoAction>(() => {
+                return {
+                    type: ACTION_TOGGLE_TODO,
+                    todo: this.props.data
+                }
+            }).subscribe(this.props.store.subject)
+
+        this.lblDbClickEventSubject.subscribe(
+            () => {
+                this.setState({ isEditing: true })
             }
-        }).subscribe(this.props.store.subject)
+        )
+
+        //按键事件触发后的系列处理
+        let confirmEditTodo = this.inputKeyPressEventSubject
+            .filter((e: KeyboardEvent) => {
+                return e.keyCode === 13
+            }) //过滤只允许回车按键事件通过；
+            .map(() => {
+                let input = this.refs['title_input'] as HTMLInputElement
+                 return input.value }) //获取当前输入区的值，映射为新的事件发射；
+            .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
+            .map<TodoAction>(
+            v => {
+                this.setState({isEditing:false})
+                return {
+                    type: ACTION_UPDATE_TODO,
+                    todo: this.props.data,
+                    newTitle:v
+                }
+            }).subscribe(this.props.store.subject)
+
+        let cancelEditEvent = this.inputKeyPressEventSubject
+            .filter((e: KeyboardEvent) => {
+                return e.keyCode === 27   //过滤只允许ESC按键事件通过；
+            }).subscribe(() => {
+                this.setState({ isEditing: false })
+            }
+            )
     }
 
     render() {
-        return (
-            <div>
-                {/*复选框控件。显示及修改当前todo的完成状态*/}
-                <input type='checkbox' checked={this.props.data.completed} ref='chkbox_completed'/>
-                {/*显示标题。*/}
-                <label>{this.props.data.title}</label>
-                {/*删除按钮*/}
-                <button ref='btn_delete'>Delete</button>
-            </div>
-        );
+        if (this.state.isEditing) {
+            return (
+                <div>
+                    <input type="text" ref='title_input' onKeyUp={e => this.inputKeyPressEventSubject.handler(e) }/>
+                </div>
+            )
+        } else {
+            return (
+                <div>
+                    {/*复选框控件。显示及修改当前todo的完成状态*/}
+                    <input type='checkbox' checked={this.props.data.completed} onChange={e => this.cbChangeEventSubject.handler(e) }/>
+                    {/*显示标题。*/}
+                    <label onDoubleClick={e => this.lblDbClickEventSubject.handler(e) }>{this.props.data.title}</label>
+                    {/*删除按钮*/}
+                    <button onClick={e => this.btnDeleteClickEventSubject.handler(e) }>Delete</button>
+                </div>
+            );
+        }
     }
 }
 
@@ -129,9 +195,8 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
     }
 
     componentDidMount() {
-        //输入框。组件加载后默认设置输入区获得焦点。
+        //输入框。
         let input: HTMLInputElement = this.refs['titleInput'] as HTMLInputElement;
-        input.focus()
         //从event生成的observable，每次按键都会触发。
         let enterEvent = Rx.Observable.fromEvent(input, 'keypress')
         //按键事件触发后的系列处理
@@ -173,7 +238,7 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
                 {/**标题文本 */}
                 <h1>TODOS (rxjs) </h1>
                 {/**标题输入区。指定一个ref名称，以便后面访问dom获取输入值 */}
-                <input type="text" ref='titleInput'/>
+                <input type="text" ref='titleInput' autoFocus/>
                 {/**显示一个总数。通过访问状态对象的数据获得。 */}
                 <h2>Count: {this.state.data.length}</h2>
                 {/**嵌入一个todo列表组件，设置其属性为状态对象的数据 */}
