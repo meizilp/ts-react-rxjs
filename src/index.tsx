@@ -76,14 +76,14 @@ class TodoStore {
 //用来显示一条todo的组件。拥有一个data属性，数据是要显示的todo对象，拥有一个store属性，用来通知store响应动作
 class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }, { isEditing: boolean }> {
     private lblDbClickEventSubject: EventHandlerSubject<any>;
-    private inputKeyPressEventSubject: EventHandlerSubject<any>;
+    private inputKeyUpEventSubject: EventHandlerSubject<any>;
     private btnDeleteClickEventSubject: EventHandlerSubject<any>;
     private cbChangeEventSubject: EventHandlerSubject<any>;
     constructor() {
         super()
         this.state = { isEditing: false }
         this.lblDbClickEventSubject = new EventHandlerSubject<any>()
-        this.inputKeyPressEventSubject = new EventHandlerSubject<any>()
+        this.inputKeyUpEventSubject = new EventHandlerSubject<any>()
         this.btnDeleteClickEventSubject = new EventHandlerSubject<any>()
         this.cbChangeEventSubject = new EventHandlerSubject<any>()
     }
@@ -120,12 +120,12 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
         )
 
         //按键事件触发后的系列处理
-        let confirmEditTodo = this.inputKeyPressEventSubject
+        let confirmEditTodo = this.inputKeyUpEventSubject
             .filter((e: KeyboardEvent) => {
                 return e.keyCode === 13
             }) //过滤只允许回车按键事件通过；
-            .map(() => {
-                let input = this.refs['title_input'] as HTMLInputElement
+            .map((e) => {
+                let input = e.target as HTMLInputElement
                  return input.value }) //获取当前输入区的值，映射为新的事件发射；
             .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
             .map<TodoAction>(
@@ -138,7 +138,7 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
                 }
             }).subscribe(this.props.store.subject)
 
-        let cancelEditEvent = this.inputKeyPressEventSubject
+        let cancelEditEvent = this.inputKeyUpEventSubject
             .filter((e: KeyboardEvent) => {
                 return e.keyCode === 27   //过滤只允许ESC按键事件通过；
             }).subscribe(() => {
@@ -151,7 +151,7 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
         if (this.state.isEditing) {
             return (
                 <div>
-                    <input type="text" ref='title_input' onKeyUp={e => this.inputKeyPressEventSubject.handler(e) }/>
+                    <input type="text" ref='title_input' onKeyUp={e => this.inputKeyUpEventSubject.handler(e) }/>
                 </div>
             )
         } else {
@@ -185,6 +185,7 @@ class TodoList extends React.Component<{ store: TodoStore, data: TodoItemModel[]
 
 //APP组件，页面的入口组件。要求一个包含data字段的状态对象，data字段的数据类型是todo对象数组。
 class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] }> {
+    private inputTitleKeyupEventSubject: EventHandlerSubject<any>;
     /*
     *构造函数。给状态对象一个初始值。state的值必须是一个对象，不能是number之类。   
     *如果类定义原型那儿约定data是个number，这儿赋一个number上去，编译没问题，但运行时就会报错。    
@@ -192,19 +193,18 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
     constructor() {
         super()
         this.state = { data: [{ id: Date.now(), title: 'app init data' }] };
+        this.inputTitleKeyupEventSubject = new EventHandlerSubject<any>()
     }
 
     componentDidMount() {
         //输入框。
         let input: HTMLInputElement = this.refs['titleInput'] as HTMLInputElement;
-        //从event生成的observable，每次按键都会触发。
-        let enterEvent = Rx.Observable.fromEvent(input, 'keypress')
         //按键事件触发后的系列处理
-        let newTodo = enterEvent
+        let newTodo = this.inputTitleKeyupEventSubject
             .filter((e: KeyboardEvent) => {
                 return e.keyCode === 13
             }) //过滤只允许回车按键事件通过；
-            .map(() => input.value) //获取当前输入区的值，映射为新的事件发射；
+            .map((e:KeyboardEvent) => (e.target as HTMLInputElement).value) //获取当前输入区的值，映射为新的事件发射；
             .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
             .map<TodoAction>(
             v => {
@@ -238,7 +238,7 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
                 {/**标题文本 */}
                 <h1>TODOS (rxjs) </h1>
                 {/**标题输入区。指定一个ref名称，以便后面访问dom获取输入值 */}
-                <input type="text" ref='titleInput' autoFocus/>
+                <input type="text" ref='titleInput' autoFocus onKeyUp={e => this.inputTitleKeyupEventSubject.handler(e) }/>
                 {/**显示一个总数。通过访问状态对象的数据获得。 */}
                 <h2>Count: {this.state.data.length}</h2>
                 {/**嵌入一个todo列表组件，设置其属性为状态对象的数据 */}
