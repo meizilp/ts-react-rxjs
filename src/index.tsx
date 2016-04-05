@@ -5,8 +5,6 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import * as Rx from 'rxjs'
 
-import {EventHandlerSubject} from './ts/utils/EventHandlerSubject.ts'
-
 //Todo数据模型
 interface TodoItemModel {
     id?: number,
@@ -75,17 +73,17 @@ class TodoStore {
 
 //用来显示一条todo的组件。拥有一个data属性，数据是要显示的todo对象，拥有一个store属性，用来通知store响应动作
 class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }, { isEditing: boolean }> {
-    private lblDbClickEventSubject: EventHandlerSubject<any>;
-    private inputKeyUpEventSubject: EventHandlerSubject<any>;
-    private btnDeleteClickEventSubject: EventHandlerSubject<any>;
-    private cbChangeEventSubject: EventHandlerSubject<any>;
+    private lblDbClickEventSubject: Rx.Subject<any>;
+    private inputKeyUpEventSubject: Rx.Subject<any>;
+    private btnDeleteClickEventSubject: Rx.Subject<any>;
+    private cbChangeEventSubject: Rx.Subject<any>;
     constructor() {
         super()
         this.state = { isEditing: false }
-        this.lblDbClickEventSubject = new EventHandlerSubject<any>()
-        this.inputKeyUpEventSubject = new EventHandlerSubject<any>()
-        this.btnDeleteClickEventSubject = new EventHandlerSubject<any>()
-        this.cbChangeEventSubject = new EventHandlerSubject<any>()
+        this.lblDbClickEventSubject = new Rx.Subject<any>()
+        this.inputKeyUpEventSubject = new Rx.Subject<any>()
+        this.btnDeleteClickEventSubject = new Rx.Subject<any>()
+        this.cbChangeEventSubject = new Rx.Subject<any>()
     }
 
     componentDidUpdate() {
@@ -152,18 +150,18 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
         if (this.state.isEditing) {
             return (
                 <div>
-                    <input type="text" ref='title_input' onKeyUp={e => this.inputKeyUpEventSubject.handler(e) }/>
+                    <input type="text" ref='title_input' onKeyUp={e => this.inputKeyUpEventSubject.next(e) }/>
                 </div>
             )
         } else {
             return (
                 <div>
                     {/*复选框控件。显示及修改当前todo的完成状态*/}
-                    <input type='checkbox' checked={this.props.data.completed} onChange={e => this.cbChangeEventSubject.handler(e) }/>
+                    <input type='checkbox' checked={this.props.data.completed} onChange={e => this.cbChangeEventSubject.next(e) }/>
                     {/*显示标题。*/}
-                    <label onDoubleClick={e => this.lblDbClickEventSubject.handler(e) }>{this.props.data.title}</label>
+                    <label onDoubleClick={e => this.lblDbClickEventSubject.next(e) }>{this.props.data.title}</label>
                     {/*删除按钮*/}
-                    <button onClick={e => this.btnDeleteClickEventSubject.handler(e) }>Delete</button>
+                    <button onClick={e => this.btnDeleteClickEventSubject.next(e) }>Delete</button>
                 </div>
             );
         }
@@ -186,7 +184,7 @@ class TodoList extends React.Component<{ store: TodoStore, data: TodoItemModel[]
 
 //APP组件，页面的入口组件。要求一个包含data字段的状态对象，data字段的数据类型是todo对象数组。
 class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] }> {
-    private inputTitleKeyupEventSubject: EventHandlerSubject<any>;
+    private inputTitleKeyupEventSubject: Rx.Subject<any>;
     /*
     *构造函数。给状态对象一个初始值。state的值必须是一个对象，不能是number之类。   
     *如果类定义原型那儿约定data是个number，这儿赋一个number上去，编译没问题，但运行时就会报错。    
@@ -194,7 +192,7 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
     constructor() {
         super()
         this.state = { data: [{ id: Date.now(), title: 'app init data' }] };
-        this.inputTitleKeyupEventSubject = new EventHandlerSubject<any>()
+        this.inputTitleKeyupEventSubject = new Rx.Subject<any>()
     }
 
     componentDidMount() {
@@ -239,7 +237,7 @@ class App extends React.Component<{ store: TodoStore }, { data: TodoItemModel[] 
                 {/**标题文本 */}
                 <h1>TODOS (rxjs) </h1>
                 {/**标题输入区。指定一个ref名称，以便后面访问dom获取输入值 */}
-                <input type="text" ref='titleInput' autoFocus onKeyUp={e => this.inputTitleKeyupEventSubject.handler(e) }/>
+                <input type="text" ref='titleInput' autoFocus onKeyUp={e => this.inputTitleKeyupEventSubject.next(e) }/>
                 {/**显示一个总数。通过访问状态对象的数据获得。 */}
                 <h2>Count: {this.state.data.length}</h2>
                 {/**嵌入一个todo列表组件，设置其属性为状态对象的数据 */}
