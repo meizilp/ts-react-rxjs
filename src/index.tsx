@@ -142,12 +142,13 @@ class TodoItem extends React.Component<{ store: TodoStore, data: TodoItemModel }
             .filter((e: KeyboardEvent) => {
                 return e.keyCode === 27   //过滤只允许ESC按键事件通过；
             }).subscribe(() => {
-                this.setState({ isEditing: false })
-            }
+                    this.setState({ isEditing: false })
+                }
             )
     }
 
     render() {
+        //根据不同的状态进行不同呈现
         if (this.state.isEditing) {
             return (
                 <div>

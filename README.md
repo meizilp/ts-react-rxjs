@@ -319,11 +319,69 @@ function loadFromLocal(): TodoItemModel[] {
 
 ## 5.第五阶段（支持修改todo的完成状态）
 思路：当check被点击时，发送修改状态的请求，收到请求后原数组map为一个新数组，新数组中要修改的todo用一个新对象复制原对象替代。  
-```js
+```js 
 case ACTION_TOGGLE_TODO:
     //如果不是要修改的对象原样返回，如果是那么新建一个对象复制原对象，并修改完成状态，最终所有对象组成一个新的数组返回
     return todos.map((t) => {
         return t !== action.todo ? t : Object.assign({}, t, { completed: !t.completed })    
     })
 ```
+
+## 6.第六阶段（支持修改todo的标题）
+1. 实现EventHandlerSubject类，从Subject集成，提供一个handle函数，可以作为组件的事件回调函数。
+  - EventHandlerSubject  
+  ```js  
+    class EventHandlerSubject<T extends Event> extends Rx.Subject<T> {
+        constructor(destination?: Rx.Observer<T>, source?: Rx.Observable<T>) {
+            super(destination, source)
+        }
+        //提供给外部使用的事件函数句柄，当被调用时触发subject调用next
+        public handler(e: T) {
+            this.next(e)
+        }
+    }
+  ```
+  - 在组件的构造函数中初始化  
+  ```this.btnDeleteClickEventSubject = new EventHandlerSubject<any>()```  
+  - 绑定DOM元素的事件，一定要用=>函数保证this指向组件  
+  ```<button onClick={e => this.btnDeleteClickEventSubject.handler(e) }>Delete</button>```  
+  - 当DOM元素的事件触发时，会触发subject emit data，可以通过操作符进行处理  
+  ```js
+  this.btnDeleteClickEventSubject
+            .map<TodoAction>(() => {
+                return {
+                    type: ACTION_DELETE_TODO,
+                    todo: this.props.data
+                }
+            }).subscribe(this.props.store.subject)  
+  ```
+2. 增加更新TODO的ACTION，Action的数据结构也微调一下。
+3. 处理UPDATE请求的思路：原数组映射一个新数组，不修改的对象原样覆盖过去，修改的对象新建一个对象放入新数组。
+4. 组件的render函数根据不同状态，提供不同的DOM元素  
+  ```js
+    render() {
+        //根据不同的状态进行不同呈现
+        if (this.state.isEditing) {
+            return (
+                ...第一种布局
+            )
+        } else {
+            return (
+                ...第二种布局
+            );
+        }
+    }    
+  ```
+5. componentDidUpdate中更新DOM元素，此时新状态创建的DOM已经生效。
+6. 第六阶段遇到的问题：  
+  - DOM的事件处理函数一定用=>再封装一层解决this不对的问题，这个第一阶段已经遇到过。  
+  - props属性在组价构造函数中是访问不到的。这个第三阶段已经遇到过。  
+  - input的value属性如果通过dom设置：value={this.props.data.title}，那么就会始终是title的值，除非title的值变化，会造成好像input变成readonly了，输入什么都不管用。
+  - setState后，如果页面上dom发生变化，此时实际上通过refs还访问不到。要在componentDidUpdate中才能访问到。 
+  - keypresss事件中keycode为0，要通过keyup或者keydown事件来处理  
+  - Action的处理函数case分支在变多，不断膨胀有隐患
+  - index.tsx代码越来越多，组件混在一起，有隐患
+
   
+  
+   
