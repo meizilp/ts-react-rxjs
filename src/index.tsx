@@ -7,6 +7,7 @@ import * as Rx from 'rxjs'
 
 import {TodoListComponent} from './components/TodoListComponent.tsx'
 import {TodoAppHeader} from './components/TodoAppHeader.tsx'
+import {TodoAppFooter} from './components/TodoAppFooter.tsx'
 import {TodoStore} from './ts/TodoStore.ts'
 import {Todo} from './ts/Todo.ts'
 
@@ -37,6 +38,7 @@ class App extends React.Component<{ store: TodoStore }, { data: Todo[] }> {
                 <TodoAppHeader store={this.props.store}/>
                 {/**嵌入一个todo列表组件，设置其属性为状态对象的数据 */}
                 <TodoListComponent data={this.state.data} store={this.props.store}/>
+                <TodoAppFooter count={this.state.data.length} store={this.props.store}/>
             </div>
         );
     }
