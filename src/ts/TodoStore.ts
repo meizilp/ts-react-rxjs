@@ -38,11 +38,11 @@ class TodoStore {
         this.todos$.forEach(todos => TodoStore.saveToLocal(todos))
     }
 
-    static saveToLocal(todos: Todo[]) {
+    private static saveToLocal(todos: Todo[]) {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(todos));
     }
 
-    static loadFromLocal(): Todo[] {
+    private static loadFromLocal(): Todo[] {
         let localStore = localStorage.getItem(LOCAL_STORAGE_KEY);
         return (localStore && JSON.parse(localStore)) || [];
     }
