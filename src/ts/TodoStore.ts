@@ -6,11 +6,11 @@ import {Todo} from './Todo.ts'
 const LOCAL_STORAGE_KEY = 'myTodo'
 
 class TodoStore {
-    public subject: Rx.BehaviorSubject<TodoAction>  //接收action的Observer，所有的action都会触发其发射事件
-    public todosObservable: Rx.Observable<Todo[]>  //基于subject通过scan函数得到的所有action效果叠加结果
+    public $update$: Rx.BehaviorSubject<TodoAction>  //接收action的Observer，所有的action都会触发其发射事件
+    public todos$: Rx.Observable<Todo[]>  //基于subject通过scan函数得到的所有action效果叠加结果
     constructor() {
-        this.subject = new Rx.BehaviorSubject({ type: ACTION_INIT_STORE, todos: TodoStore.loadFromLocal() })  //从本地存储加载数据
-        this.todosObservable = this.subject
+        this.$update$ = new Rx.BehaviorSubject({ type: ACTION_INIT_STORE, todos: TodoStore.loadFromLocal() })  //从本地存储加载数据
+        this.todos$ = this.$update$
             .scan<Todo[]>(
             (todos, action) => {
                 switch (action.type) {
@@ -34,6 +34,8 @@ class TodoStore {
                         return todos;
                 }
             }, [])  //scan操作符，把action的影响转换为一个数组。这儿使用了一个空数组进行初始化，如果不初始化，scan所形成observable发射的第一个元素将是subject的初始action，并不是一个数组。
+
+        this.todos$.forEach(todos => TodoStore.saveToLocal(todos))
     }
 
     static saveToLocal(todos: Todo[]) {

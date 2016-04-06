@@ -35,7 +35,7 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
                     type: ACTION_DELETE_TODO,
                     todo: this.props.data
                 }
-            }).subscribe(this.props.store.subject)
+            }).subscribe(this.props.store.$update$)
 
         this.cbChangeEventSubject
             .map<TodoAction>(() => {
@@ -43,7 +43,7 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
                     type: ACTION_TOGGLE_TODO,
                     todo: this.props.data
                 }
-            }).subscribe(this.props.store.subject)
+            }).subscribe(this.props.store.$update$)
 
         this.lblDbClickEventSubject.subscribe(
             () => {
@@ -68,7 +68,7 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
                     todo: this.props.data,
                     newTitle:v
                 }
-            }).subscribe(this.props.store.subject)
+            }).subscribe(this.props.store.$update$)
 
         let cancelEditEvent = this.inputKeyUpEventSubject
             .filter((e: KeyboardEvent) => {

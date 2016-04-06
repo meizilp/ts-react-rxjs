@@ -23,9 +23,8 @@ class App extends React.Component<{ store: TodoStore }, { data: Todo[] }> {
 
     componentDidMount() {
         //每当todos的结果发生变化时保存到本地存储，并更新整个App的状态        
-        this.props.store.todosObservable
+        this.props.store.todos$
             .forEach((todos) => {
-                TodoStore.saveToLocal(todos)
                 this.setState({ data: todos })
             })
     }

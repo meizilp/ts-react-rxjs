@@ -32,10 +32,10 @@ class TodoAppHeader extends React.Component<{store:TodoStore}, {}> {
             });  //根据输入值生成一个新的todo对象，映射为新的事件发射；
 
         //当新建todo有发生时通知store更新
-        newTodo.subscribe(this.props.store.subject)
+        newTodo.subscribe(this.props.store.$update$)
 
         //每当收到创建新条目的action时清空输入区（待实现异步保存成功后再清空输入区）
-        this.props.store.subject
+        this.props.store.$update$
             .filter((a) => a.type === ACTION_CREATE_TODO)
             .forEach((todos) => {
                 input.value = ''
