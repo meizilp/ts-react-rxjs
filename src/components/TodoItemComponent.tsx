@@ -36,7 +36,6 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
 
         this.cbChangeEventSubject
             .map<Todo>(() => {
-                console.log('Toggle:' + Date.now())
                 return this.props.data
             }).subscribe(this.props.store.actions.toggle)
 

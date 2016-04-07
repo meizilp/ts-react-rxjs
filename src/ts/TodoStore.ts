@@ -7,32 +7,29 @@ const LOCAL_STORAGE_KEY = 'myTodo'
 
 interface TodoAppState {
     todos: Todo[]
-    name?: string
 }
 
 class TodoStore {
     public $update: Rx.BehaviorSubject<TodoActionReducer>
-    public state$: Rx.Observable<TodoAppState>
+    public state$: Rx.BehaviorSubject<TodoAppState>
     public actions: TodoActions
 
     constructor() {
+        this.state$ = new Rx.BehaviorSubject<TodoAppState>({ todos: [] })
         this.$update = new Rx.BehaviorSubject<TodoActionReducer>(null)
 
-        this.state$ = this.$update
+        this.$update
             .scan<TodoAppState>((x: TodoAppState, y: TodoActionReducer) => {
-                console.log('Exe scan:' + Date.now())
                 if (y) return y(x)
                 else return x
             }, { todos: TodoStore.loadDataFromLocalStorage(LOCAL_STORAGE_KEY) })
+            .subscribe(this.state$)
 
         this.state$
             .skip(1)
             .forEach(state => {
-                console.log('save to store:'+ state.name)
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.todos))
             })
-
-
 
         this.actions = new TodoActions(this.$update)
     }

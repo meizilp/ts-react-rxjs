@@ -9,7 +9,6 @@ class ActionToggle extends Rx.Subject<Todo> {
         this.map<TodoActionReducer>(
             todo => {
                 return function(lastState: TodoAppState) {
-                    console.log('LastName-' + lastState.name)
                     return { 
                         todos: lastState.todos.map((t) => {
                             return t !== todo ? t : Object.assign({}, t, { completed: !t.completed })
