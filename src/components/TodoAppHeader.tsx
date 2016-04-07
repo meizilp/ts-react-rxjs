@@ -3,7 +3,6 @@ import * as ReactDOM from 'react-dom'
 import * as Rx from 'rxjs'
 
 import {TodoStore} from '../ts/TodoStore.ts'
-import {TodoAction, ACTION_CREATE_TODO} from '../ts/TodoAction.ts'
 
 class TodoAppHeader extends React.Component<{store:TodoStore}, {}> {
     private inputTitleKeyupEventSubject: Rx.Subject<any>;
@@ -23,23 +22,10 @@ class TodoAppHeader extends React.Component<{store:TodoStore}, {}> {
             }) //过滤只允许回车按键事件通过；
             .map((e: KeyboardEvent) => (e.target as HTMLInputElement).value) //获取当前输入区的值，映射为新的事件发射；
             .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
-            .map<TodoAction>(
-            v => {
-                return {
-                    type: ACTION_CREATE_TODO,
-                    todo: { id: Date.now(), title: v, completed: false }
-                }
-            });  //根据输入值生成一个新的todo对象，映射为新的事件发射；
-
-        //当新建todo有发生时通知store更新
-        newTodo.subscribe(this.props.store.$update$)
+            .subscribe(this.props.store.actions.create)
 
         //每当收到创建新条目的action时清空输入区（待实现异步保存成功后再清空输入区）
-        this.props.store.$update$
-            .filter((a) => a.type === ACTION_CREATE_TODO)
-            .forEach((todos) => {
-                input.value = ''
-            })
+       
     }
 
     render() {

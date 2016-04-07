@@ -23,9 +23,10 @@ class App extends React.Component<{ store: TodoStore }, { data: Todo[] }> {
 
     componentDidMount() {
         //每当todos的结果发生变化时保存到本地存储，并更新整个App的状态        
-        this.props.store.todos$
-            .forEach((todos) => {
-                this.setState({ data: todos })
+        this.props.store.state$
+            .forEach((state) => {
+                console.log('update app state:' + state.name)
+                this.setState({ data: state.todos })
             })
     }
 
@@ -43,6 +44,8 @@ class App extends React.Component<{ store: TodoStore }, { data: Todo[] }> {
     }
 }
 
+var ts = new TodoStore() 
+
 //将App组件渲染到页面的content元素中
-ReactDOM.render(<App store={new TodoStore() }/>, document.getElementById('content'))
+ReactDOM.render(<App store={ts}/>, document.getElementById('content'))
 
