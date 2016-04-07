@@ -4,12 +4,17 @@ import * as Rx from 'rxjs'
 
 import {TodoStore} from '../ts/TodoStore.ts'
 
-class TodoAppHeader extends React.Component<{store:TodoStore}, {}> {
+class TodoAppHeader extends React.Component<{ store: TodoStore }, { title: string }> {
     private inputTitleKeyupEventSubject: Rx.Subject<any>;
 
     constructor() {
         super()
         this.inputTitleKeyupEventSubject = new Rx.Subject<any>()
+        this.state = { title: '' }
+    }
+
+    handleTitleChange(e) {
+        this.setState({ title: e.target.value })
     }
 
     componentDidMount() {
@@ -24,15 +29,17 @@ class TodoAppHeader extends React.Component<{store:TodoStore}, {}> {
             .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
             .subscribe(this.props.store.actions.create)
 
-        //每当收到创建新条目的action时清空输入区（待实现异步保存成功后再清空输入区）
-       
+        //每当收到创建新条目的action时清空输入区[是否保存成功先不管]
+        this.props.store.actions.create.forEach(() => this.setState({title:''}))
     }
 
     render() {
         return (
             <div>
                 {/**标题输入区。指定一个ref名称，以便后面访问dom获取输入值 */}
-                <input type="text" ref='titleInput' autoFocus onKeyUp={e => this.inputTitleKeyupEventSubject.next(e) }/>
+                <input type="text" ref='titleInput' autoFocus value={this.state.title}
+                    onChange={e => this.handleTitleChange(e) }
+                    onKeyUp={e => this.inputTitleKeyupEventSubject.next(e) }/>
             </div>
         );
     }
