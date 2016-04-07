@@ -54,8 +54,7 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
                 let input = e.target as HTMLInputElement
                  return input.value }) //获取当前输入区的值，映射为新的事件发射；
             .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
-            .map<UpdateTodoInfo>(
-            v => {
+            .map<UpdateTodoInfo>(v => {
                 this.setState({isEditing:false})
                 return {
                     toUpdateTodo: this.props.data,
@@ -66,10 +65,7 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
         let cancelEditEvent = this.inputKeyUpEventSubject
             .filter((e: KeyboardEvent) => {
                 return e.keyCode === 27   //过滤只允许ESC按键事件通过；
-            }).subscribe(() => {
-                    this.setState({ isEditing: false })
-                }
-            )
+            }).subscribe(() =>this.setState({ isEditing: false }))
     }
 
     render() {
@@ -77,7 +73,8 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
         if (this.state.isEditing) {
             return (
                 <div>
-                    <input type="text" ref='title_input' onKeyUp={e => this.inputKeyUpEventSubject.next(e) }/>
+                    <input type="text" ref='title_input'
+                        onKeyUp={e => this.inputKeyUpEventSubject.next(e) }/>
                 </div>
             )
         } else {
