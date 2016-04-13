@@ -27,8 +27,6 @@ class App extends React.Component<{ store: TodoStore }, { data: Todo[] }> {
             .forEach((state) => {
                 this.setState({ data: state.todos })
             })
-
-        this.props.store.state$.skipWhile        
     }
 
     render() {
