@@ -3,7 +3,9 @@ import * as Rx from 'rxjs'
 
 import {TodoStore} from '../ts/TodoStore.ts'
 import {Todo} from '../ts/Todo.ts'
-import {UpdateTodoInfo} from '../ts/actions/ActionUpdate.ts'
+import {ActionUpdate, UpdateTodoInfo} from '../ts/actions/ActionUpdate.ts'
+import {ActionDelete} from '../ts/actions/ActionDelete.ts'
+import {ActionToggle} from '../ts/actions/ActionToggle.ts'
 
 //用来显示一条todo的组件。拥有一个data属性，数据是要显示的todo对象，拥有一个store属性，用来通知store响应动作
 class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }, { isEditing: boolean }> {
@@ -30,14 +32,14 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
 
     componentDidMount() {
         this.btnDeleteClickEventSubject
-            .map<Todo>(() => {
-                return this.props.data
-            }).subscribe(this.props.store.actions.delete)
+            .map(() => {
+                return new ActionDelete(this.props.data)
+            }).subscribe(this.props.store.$dispatch)
 
         this.cbChangeEventSubject
-            .map<Todo>(() => {
-                return this.props.data
-            }).subscribe(this.props.store.actions.toggle)
+            .map(() => {
+                return new ActionToggle(this.props.data)
+            }).subscribe(this.props.store.$dispatch)
 
         this.lblDbClickEventSubject.subscribe(
             () => {
@@ -54,13 +56,13 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
                 let input = e.target as HTMLInputElement
                  return input.value }) //获取当前输入区的值，映射为新的事件发射；
             .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
-            .map<UpdateTodoInfo>(v => {
-                this.setState({isEditing:false})
-                return {
+            .map(v => {
+                this.setState({ isEditing: false })
+                return new ActionUpdate({
                     toUpdateTodo: this.props.data,
                     newValue: {title:v}
-                }
-            }).subscribe(this.props.store.actions.update)
+                })
+            }).subscribe(this.props.store.$dispatch)
 
         let cancelEditEvent = this.inputKeyUpEventSubject
             .filter((e: KeyboardEvent) => {

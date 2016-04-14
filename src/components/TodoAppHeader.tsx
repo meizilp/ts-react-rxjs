@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom'
 import * as Rx from 'rxjs'
 
 import {TodoStore} from '../ts/TodoStore.ts'
+import {ActionCreate} from '../ts/actions/ActionCreate.ts'
 
 class TodoAppHeader extends React.Component<{ store: TodoStore }, { title: string }> {
     private inputTitleKeyupEventSubject: Rx.Subject<any>;
@@ -27,10 +28,13 @@ class TodoAppHeader extends React.Component<{ store: TodoStore }, { title: strin
             }) //过滤只允许回车按键事件通过；
             .map((e: KeyboardEvent) => (e.target as HTMLInputElement).value) //获取当前输入区的值，映射为新的事件发射；
             .filter(v => v.length > 0)  //过滤只允许输入长度>0零的值通过；
-            .subscribe(this.props.store.actions.create)
+            .map(t => {
+                return new ActionCreate({ id: Date.now(), title: t, completed: false })
+            })
+            .subscribe(this.props.store.$dispatch)
 
-        //每当收到创建新条目的action时清空输入区[是否保存成功先不管]
-        this.props.store.actions.create.forEach(() => this.setState({title:''}))
+        //清空输入区(待增加保存中这个状态的处理)
+        this.setState({ title: '' })
     }
 
     render() {

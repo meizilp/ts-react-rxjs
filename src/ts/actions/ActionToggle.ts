@@ -1,23 +1,15 @@
-import * as Rx from 'rxjs'
 import {Todo} from '../Todo.ts'
-import {TodoAppState} from '../TodoStore.ts'
-import {TodoActionReducer} from './TodoActions.ts'
+import {TodoAppState, Action} from '../TodoStore.ts'
 
-class ActionToggle extends Rx.Subject<Todo> {
-    constructor($update: Rx.Subject<TodoActionReducer>) {
-        super()
-        this.map<TodoActionReducer>(
-            todo => {
-                return function(lastState: TodoAppState) {
-                    return { 
-                        todos: lastState.todos.map((t) => {
-                            return t !== todo ? t : Object.assign({}, t, { completed: !t.completed })
-                        }),
-                        name: Date.now()
-                    }
-                }
-            }
-        ).subscribe($update)
+class ActionToggle implements Action {
+    constructor(private todo: Todo) { }
+
+    reduce(oriState: TodoAppState): TodoAppState {
+        return {
+            todos: oriState.todos.map(t => {
+                return t !== this.todo ? t : Object.assign({}, t, { completed: !t.completed })
+            })
+        }
     }
 }
 

@@ -1,9 +1,12 @@
 import * as Rx from 'rxjs'
 
 import {Todo} from './Todo.ts'
-import {TodoActions, TodoActionReducer} from './actions/TodoActions.ts'
 
 const LOCAL_STORAGE_KEY = 'myTodo'
+
+interface Action {
+    reduce(oriState: TodoAppState): TodoAppState
+}
 
 //状态对象。
 interface TodoAppState {
@@ -12,22 +15,20 @@ interface TodoAppState {
 
 class TodoStore {
     //用来接收更新通知的subject
-    public $update: Rx.BehaviorSubject<TodoActionReducer>
+    public $dispatch: Rx.BehaviorSubject<Action>
     //用来通知state发生变化的subject
     public state$: Rx.BehaviorSubject<TodoAppState>
-    //外界可以向store发送的action通知
-    public actions: TodoActions
 
     constructor() {
         //当前状态是个behaviorSubject，这样才能保持住上一个状态一直存在
         this.state$ = new Rx.BehaviorSubject<TodoAppState>({ todos: [] })
-        this.$update = new Rx.BehaviorSubject<TodoActionReducer>(null)
+        this.$dispatch = new Rx.BehaviorSubject<Action>(null)
 
         //通知subject接收到通知后，通过scan进行计算后通知状态对象。        
-        this.$update
-            .scan<TodoAppState>((x: TodoAppState, y: TodoActionReducer) => {
-                if (y) return y(x)
-                else return x
+        this.$dispatch
+            .scan<TodoAppState>((s: TodoAppState, a: Action) => {
+                if (a) return a.reduce(s)
+                else return s
             }, { todos: TodoStore.loadDataFromLocalStorage(LOCAL_STORAGE_KEY) })
             .subscribe(this.state$)
 
@@ -46,8 +47,6 @@ class TodoStore {
             .forEach(state => {
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.todos))
             })
-
-        this.actions = new TodoActions(this.$update)
     }
 
     //从本地存储加载数据    
@@ -57,4 +56,4 @@ class TodoStore {
     }
 }
 
-export {TodoStore, TodoAppState}
+export {TodoStore, TodoAppState, Action}
