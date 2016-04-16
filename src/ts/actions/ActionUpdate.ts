@@ -1,12 +1,13 @@
-import {Todo} from '../Todo.ts'
-import {TodoAppState, Action} from '../TodoStore.ts'
+import {Action} from '../Store.ts'
+import {TodoAppState, Todo} from '../../index.tsx'
+
 
 interface UpdateTodoInfo {
     toUpdateTodo: Todo
     newValue: Todo
 }
 
-class ActionUpdate implements Action {
+class ActionUpdate implements Action<TodoAppState> {
     constructor(private info: UpdateTodoInfo) { }
 
     reduce(oriState: TodoAppState): TodoAppState {

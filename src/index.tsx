@@ -8,11 +8,33 @@ import * as Rx from 'rxjs'
 import {TodoListComponent} from './components/TodoListComponent.tsx'
 import {TodoAppHeader} from './components/TodoAppHeader.tsx'
 import {TodoAppFooter} from './components/TodoAppFooter.tsx'
-import {TodoStore} from './ts/TodoStore.ts'
-import {Todo} from './ts/Todo.ts'
+import {Store} from './ts/Store.ts'
+
+interface Todo {
+    id?: number,
+    title?: string,
+    completed?: boolean
+}
+export {Todo}
+
+//状态对象。
+interface TodoAppState {
+    todos: Todo[]
+}
+export {TodoAppState}
+
+const LOCAL_STORAGE_KEY = 'myTodo'
+function loadStateFromLocalStorae(): TodoAppState {
+    let localStore = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return { todos: (localStore && JSON.parse(localStore)) || [] }
+}
+
+function saveStateToLocalStorage(s: TodoAppState) {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(s.todos))
+}
 
 //APP组件，页面的入口组件。要求一个包含data字段的状态对象，data字段的数据类型是todo对象数组。
-class App extends React.Component<{ store: TodoStore }, { data: Todo[] }> {
+class App extends React.Component<{ store: Store<TodoAppState> }, { data: Todo[] }> {
     /*
     *构造函数。给状态对象一个初始值。  
     */
@@ -43,7 +65,12 @@ class App extends React.Component<{ store: TodoStore }, { data: Todo[] }> {
     }
 }
 
-var ts = new TodoStore() 
+var ts = new Store<TodoAppState>(loadStateFromLocalStorae())
+ts.state$
+    .skip(1)
+    .forEach(state => {
+        saveStateToLocalStorage(state)
+    })
 
 //将App组件渲染到页面的content元素中
 ReactDOM.render(<App store={ts}/>, document.getElementById('content'))

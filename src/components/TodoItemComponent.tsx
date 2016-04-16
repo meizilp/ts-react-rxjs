@@ -1,14 +1,14 @@
 import * as React from 'react'
 import * as Rx from 'rxjs'
 
-import {TodoStore} from '../ts/TodoStore.ts'
-import {Todo} from '../ts/Todo.ts'
+import {Store} from '../ts/Store.ts'
+import {TodoAppState, Todo} from '../index.tsx'
 import {ActionUpdate, UpdateTodoInfo} from '../ts/actions/ActionUpdate.ts'
 import {ActionDelete} from '../ts/actions/ActionDelete.ts'
 import {ActionToggle} from '../ts/actions/ActionToggle.ts'
 
 //用来显示一条todo的组件。拥有一个data属性，数据是要显示的todo对象，拥有一个store属性，用来通知store响应动作
-class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }, { isEditing: boolean }> {
+class TodoItemComponent extends React.Component<{ store: Store<TodoAppState>, data: Todo }, { isEditing: boolean }> {
     private lblDbClickEventSubject: Rx.Subject<any>;
     private inputKeyUpEventSubject: Rx.Subject<any>;
     private btnDeleteClickEventSubject: Rx.Subject<any>;
@@ -48,7 +48,7 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
         )
 
         //按键事件触发后的系列处理
-        let confirmEditTodo = this.inputKeyUpEventSubject
+        this.inputKeyUpEventSubject
             .filter((e: KeyboardEvent) => {
                 return e.keyCode === 13
             }) //过滤只允许回车按键事件通过；
@@ -64,7 +64,7 @@ class TodoItemComponent extends React.Component<{ store: TodoStore, data: Todo }
                 })
             }).subscribe(this.props.store.$dispatch)
 
-        let cancelEditEvent = this.inputKeyUpEventSubject
+        this.inputKeyUpEventSubject
             .filter((e: KeyboardEvent) => {
                 return e.keyCode === 27   //过滤只允许ESC按键事件通过；
             }).subscribe(() =>this.setState({ isEditing: false }))

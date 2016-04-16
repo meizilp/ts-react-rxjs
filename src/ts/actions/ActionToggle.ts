@@ -1,7 +1,7 @@
-import {Todo} from '../Todo.ts'
-import {TodoAppState, Action} from '../TodoStore.ts'
+import {Action} from '../Store.ts'
+import {TodoAppState, Todo} from '../../index.tsx'
 
-class ActionToggle implements Action {
+class ActionToggle implements Action<TodoAppState> {
     constructor(private todo: Todo) { }
 
     reduce(oriState: TodoAppState): TodoAppState {
