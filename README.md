@@ -395,6 +395,14 @@ case ACTION_TOGGLE_TODO:
   4)想要实现操作符状态的保存给多个订阅者使用，那么创建一个代理Subject，订阅者都订阅这个代理，就不会出现计算多次，每个订阅者获得的对象都不一样的情况了。因为这个没理解，开始用了$update.scan().foreach()  ，多个foreach各自产生了一个状态对象，删除时直接比对对象根本在数组中找不到，看上去就是界面上删除了，但是重新load又出来了，调试了一整天。  
   5)React的思路就是单循环，View就是根据状态显示，如果想改变View的呈现，不要直接修改View，而是修改状态，设置状态（比如不要直接修改input的值）  
   
-    
+## 8.第八阶段（使用普通class来描述action）
+### 思路：  
+  动作作为一个单独的对象发给store，这样去掉了action通过subject再转换一次，思路上更容易理解。  
+  以一个DOM事件触发后的流程为例：  
+    DOM Event --> (Event Subject).next() -- ... map() --> Action Object --> store.dispatch  
+    就是接收后映射然后发送到store。在store里面Action Object执行状态计算后通知状态改变。
+### 第八阶段遇到的问题
+  1)ts中interface里面声明一个匿名函数，然后加上其他属性，那么复制的时候就要用强制类型转换把一个函数赋值给对象，再给对象增加属性，感觉还不如直接用类。
+            
   
    
